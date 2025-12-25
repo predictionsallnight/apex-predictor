@@ -158,7 +158,13 @@
             authInitialized = true;
         } catch (error) {
             console.error('Firebase initialization error:', error);
-            showError('Failed to initialize authentication. Please refresh the page.');
+            // Show auth modal even on error so user can still sign in
+            showAuthModal();
+            authInitialized = true;
+            // Only show error if it's a critical issue
+            if (error.message && !error.message.includes('already been initialized')) {
+                console.warn('Firebase init warning:', error.message);
+            }
         }
     }
 
@@ -171,8 +177,17 @@
             
             if (!firebaseFirestore) {
                 console.error('Firestore not initialized');
-                showError('Database not initialized. Please refresh the page.');
-                return false;
+                // Try to reinitialize
+                try {
+                    await initializeFirebase();
+                } catch (e) {
+                    console.error('Reinitialization failed:', e);
+                }
+                if (!firebaseFirestore) {
+                    showError('Database not initialized. Please refresh the page.');
+                    showAuthModal(); // Ensure auth modal is shown
+                    return false;
+                }
             }
             
             const whitelistDoc = await firebaseFirestore.collection('whitelist').doc(uid).get();
@@ -1150,15 +1165,31 @@
     };
 
     function showError(message) {
+        console.error('Error:', message);
         const errorEl = document.getElementById('authError');
         if (errorEl) {
             errorEl.textContent = message;
             errorEl.style.display = 'block';
             setTimeout(() => {
                 errorEl.style.display = 'none';
-            }, 5000);
+            }, 8000); // Show for 8 seconds
         } else {
-            alert(message);
+            // If auth modal doesn't exist, create it first
+            if (!document.getElementById('apexAuthModal')) {
+                showAuthModal();
+                // Wait a moment for modal to render, then show error
+                setTimeout(() => {
+                    const newErrorEl = document.getElementById('authError');
+                    if (newErrorEl) {
+                        newErrorEl.textContent = message;
+                        newErrorEl.style.display = 'block';
+                    } else {
+                        alert(message);
+                    }
+                }, 100);
+            } else {
+                alert(message);
+            }
         }
     }
 
