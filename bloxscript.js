@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ApexPredictor - Elite Pro Edition 2025
 // @namespace    https://github.com/predictionsallnight/apex-predictor
-// @version      4.0.0
+// @version      4.0.1
 // @description  Premium dark red predictor - Firebase authentication & whitelist protection. Supports Mines and Crash games with advanced pattern-based predictions.
 // @author       YourName
 // @match        https://bloxgame.us/*
