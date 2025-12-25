@@ -1,0 +1,19 @@
+{
+  "name": "apexpredictor-website",
+  "version": "1.0.0",
+  "description": "ApexPredictor payment and account creation website",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "keywords": [
+    "apexpredictor",
+    "stripe",
+    "payment"
+  ],
+  "author": "",
+  "license": "MIT"
+}

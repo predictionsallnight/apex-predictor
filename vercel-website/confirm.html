@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Purchase - ApexPredictor</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- No Firebase client-side needed - everything is server-side! -->
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Payment Confirmed!</h1>
+            <p class="subtitle">Create Your Account</p>
+        </div>
+
+        <div class="content">
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            <div id="loading" class="loading">Processing...</div>
+
+            <div id="accountForm" class="account-form" style="display: none;">
+                <p style="margin-bottom: 20px; color: #888;">
+                    Your payment was successful! Your whitelist code has been generated. Create your account below.
+                </p>
+
+                <form id="createAccountForm">
+                    <div class="form-group">
+                        <label for="whitelistCode">Your Whitelist Code</label>
+                        <input type="text" id="whitelistCode" name="whitelistCode" required placeholder="Code will appear here..." readonly style="background: #1a1a1a; color: #00ff99; font-weight: bold; text-align: center; font-size: 18px;">
+                        <p style="font-size: 12px; color: #888; margin-top: 5px;">Save this code! You'll need it to sign in on bloxgame.us</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="your@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Minimum 6 characters" minlength="6">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Re-enter password" minlength="6">
+                    </div>
+
+                    <button type="submit" class="purchase-btn">
+                        Activate Account
+                    </button>
+                </form>
+            </div>
+
+            <div id="successSection" style="display: none;">
+                <div class="success-message" style="display: block;">
+                    ✅ Account activated! You're being redirected...
+                </div>
+                <p style="margin-top: 20px; text-align: center; color: #00ff99;">
+                    <a href="https://bloxgame.us" style="color: #00ff99; text-decoration: underline;">
+                        Click here if you're not redirected automatically
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-generate whitelist code from payment
+        let whitelistCode = null;
+        let paymentSessionId = null;
+
+        async function initializePage() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                
+                // Get payment session ID from URL (Stripe adds this)
+                const urlParams = new URLSearchParams(window.location.search);
+                paymentSessionId = urlParams.get('session_id') || urlParams.get('payment_intent');
+                
+                // Also check for manual code (for testing)
+                const manualCode = urlParams.get('code');
+                
+                if (manualCode) {
+                    // Manual code provided - use it
+                    whitelistCode = manualCode;
+                    document.getElementById('whitelistCode').value = whitelistCode;
+                    await verifyWhitelistCode();
+                    return;
+                }
+                
+                if (!paymentSessionId) {
+                    document.getElementById('loading').style.display = 'none';
+                    showError('❌ No payment confirmation found. Please complete your purchase first.');
+                    setTimeout(() => {
+                        window.location.href = 'https://vercel-website-9wu3xlg97-cayson-browns-projects.vercel.app';
+                    }, 3000);
+                    return;
+                }
+                
+                // Auto-generate code from payment session
+                console.log('Generating whitelist code for payment:', paymentSessionId);
+                await generateCodeFromPayment();
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError('Failed to initialize. Please refresh the page.');
+            }
+        }
+
+        async function generateCodeFromPayment() {
+            try {
+                // Call API to generate code
+                const response = await fetch('/api/generate-code-from-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        paymentSessionId: paymentSessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate code');
+                }
+
+                whitelistCode = data.code;
+                console.log('✅ Whitelist code generated:', whitelistCode);
+                
+                // Set code in form
+                document.getElementById('whitelistCode').value = whitelistCode;
+                
+                // Verify code
+                await verifyWhitelistCode();
+                
+            } catch (error) {
+                console.error('Error generating code:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError('Failed to generate whitelist code. Please try again or contact support.');
+            }
+        }
+
+        async function verifyWhitelistCode() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                
+                // Verify code via serverless API
+                const response = await fetch(`/api/verify-code?code=${whitelistCode}`);
+                const data = await response.json();
+                
+                if (!response.ok || !data.valid) {
+                    document.getElementById('loading').style.display = 'none';
+                    showError('❌ Invalid whitelist code. Please check your code and try again.');
+                    return;
+                }
+                
+                if (data.used === true) {
+                    document.getElementById('loading').style.display = 'none';
+                    showError('❌ This whitelist code has already been used.');
+                    return;
+                }
+                
+                // Code is valid - show form
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('accountForm').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error verifying code:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError('Failed to verify code. Please try again.');
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+        }
+
+        async function activateAccount(email, password, code) {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('errorMessage').style.display = 'none';
+
+                // Simple validation
+                email = String(email).trim().toLowerCase();
+                password = String(password).trim();
+                
+                if (!email || !password || password.length < 6) {
+                    throw new Error('Email and password (min 6 chars) required');
+                }
+
+                console.log('Activating account with code:', code);
+
+                // Call serverless API - ALL Firebase operations happen server-side!
+                const response = await fetch('/api/activate-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        whitelistCode: code
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to activate account');
+                }
+
+                console.log('✅ Account activated!', data);
+
+                // Store login in localStorage (so they stay signed in forever)
+                localStorage.setItem('apex_user', JSON.stringify({
+                    uid: data.uid,
+                    email: data.email,
+                    loggedIn: true,
+                    timestamp: Date.now()
+                }));
+
+                // Show success
+                document.getElementById('accountForm').style.display = 'none';
+                document.getElementById('successSection').style.display = 'block';
+                showSuccess('Account activated! Redirecting to game...');
+
+                // Redirect to game
+                setTimeout(() => {
+                    window.location.href = 'https://bloxgame.us';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError(error.message || 'Failed to activate account. Please try again.');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('createAccountForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const code = document.getElementById('whitelistCode').value;
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match!');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters.');
+                return;
+            }
+
+            await activateAccount(email, password, code);
+        });
+
+        // Initialize on load
+        initializePage();
+    </script>
+</body>
+</html>
