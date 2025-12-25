@@ -1,16 +1,12 @@
 // ==UserScript==
 // @name         ApexPredictor - Elite Pro Edition 2025
-// @namespace    https://github.com/predictionsallnight/apex-predictor
+// @namespace    http://tampermonkey.net/
 // @version      4.0.1
-// @description  Premium dark red predictor - Firebase authentication & whitelist protection. Supports Mines and Crash games with advanced pattern-based predictions.
-// @author       YourName
+// @description  Premium dark red predictor - Firebase authentication & whitelist protection
+// @author       You
 // @match        https://bloxgame.us/*
 // @match        https://www.bloxgame.us/*
-// @updateURL    https://raw.githubusercontent.com/predictionsallnight/apex-predictor/main/bloxscript.js
-// @downloadURL https://raw.githubusercontent.com/predictionsallnight/apex-predictor/main/bloxscript.js
-// @grant        GM_xmlhttpRequest
-// @grant        GM_setValue
-// @grant        GM_getValue
+// @grant        none
 // @run-at       document-end
 // ==/UserScript==
 
